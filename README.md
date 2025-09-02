@@ -1,22 +1,22 @@
 # Custom-Genesys-API-Portal
 /genesys-explorer
 - backend/
-- - src/
-- - - routes/
-- - - - savedQueries.js
-- - - models/
-- - - - SavedQuery.js
-- - - index.js
-- - package.json
+    - src/
+    - routes/
+        - savedQueries.js
+        - models/
+            - SavedQuery.js
+        - index.js
+    - package.json
 - frontend/
-- - src/
-- - components/
- - - EndpointTree.jsx
-- - - QueryEditor.jsx
-- - - SavedQueriesList.jsx
- - - App.jsx
- - - index.css
- - - package.json
+    - src/
+    - components/
+    - EndpointTree.jsx
+        - QueryEditor.jsx
+        - SavedQueriesList.jsx
+    - App.jsx
+    - index.css
+    - package.json
 
 1. Load the Genesys OpenAPI JSON in your front end and build an EndpointTree component that drills into each path/method.
 
