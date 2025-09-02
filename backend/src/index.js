@@ -1,30 +1,25 @@
-// index.js — Express server for saved-queries
+// backend/src/index.js (or wherever you wire up Express)
 const express = require('express');
-const mongoose = require('mongoose');
-const savedQueriesRouter = require('./routes/savedQueries');
-require('dotenv').config();
+const { getSwagger, scheduleRefresh } = require('./swaggerCache');
 
 const app = express();
 app.use(express.json());
 
-// CORS & simple auth stub
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  next();
+// Kick off the first fetch + start the hourly refresh
+getSwagger()
+  .then(() => scheduleRefresh())
+  .catch(() => {
+    console.warn('Unable to prime swagger cache; will retry on demand.');
+  });
+
+// Serve the cached swagger to your front-end
+app.get('/api/openapi.json', async (req, res) => {
+  try {
+    const spec = await getSwagger();
+    res.json(spec);
+  } catch {
+    res.status(502).json({ error: 'Unable to load swagger spec' });
+  }
 });
 
-// Mount our saved-queries API
-app.use('/api/savedQueries', savedQueriesRouter);
-
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB error', err));
-
-// Start HTTP
-app.listen(process.env.PORT || 4000, () => {
-  console.log(`API listening on port ${process.env.PORT||4000}`);
-});
+// … your other routes, Mongo, HTTPS server, etc.
