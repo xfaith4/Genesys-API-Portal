@@ -1,0 +1,10 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "Genesys Explorer",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "postCreateCommand": "npm install",
+  "forwardPorts": [3000],           // whatever port your app uses
+  "remoteUser": "node"
+}
