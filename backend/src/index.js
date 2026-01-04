@@ -1,25 +1,24 @@
-// backend/src/index.js (or wherever you wire up Express)
-const express = require('express');
+const app = require('./app');
+const { connectDatabase } = require('./db');
 const { getSwagger, scheduleRefresh } = require('./swaggerCache');
+const config = require('./config');
 
-const app = express();
-app.use(express.json());
+async function startServer() {
+  await connectDatabase();
 
-// Kick off the first fetch + start the hourly refresh
-getSwagger()
-  .then(() => scheduleRefresh())
-  .catch(() => {
-    console.warn('Unable to prime swagger cache; will retry on demand.');
-  });
-
-// Serve the cached swagger to your front-end
-app.get('/api/openapi.json', async (req, res) => {
   try {
-    const spec = await getSwagger();
-    res.json(spec);
-  } catch {
-    res.status(502).json({ error: 'Unable to load swagger spec' });
+    await getSwagger();
+  } catch (err) {
+    console.warn('Unable to prime swagger cache; will retry on demand.', err.message);
   }
-});
+  scheduleRefresh();
 
-// … your other routes, Mongo, HTTPS server, etc.
+  app.listen(config.port, () => {
+    console.log(`Genesys API portal backend listening on port ${config.port}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start backend', err);
+  process.exit(1);
+});

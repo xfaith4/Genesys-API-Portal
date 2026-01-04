@@ -1,21 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-export function SavedQueriesList({ onSelect }) {
-  const [list, setList] = useState([]);
-
-  useEffect(() => {
-    fetch('http://localhost:4000/api/savedQueries')
-      .then(r => r.json())
-      .then(setList);
-  }, []);
-
+export function SavedQueriesList({ queries = [], onSelect, loading, error, onRefresh }) {
   return (
-    <div>
-      <h3>Saved Queries</h3>
+    <div className="saved-queries">
+      <div className="saved-queries-header">
+        <h3>Saved queries</h3>
+        <button type="button" onClick={onRefresh} disabled={loading}>
+          Refresh
+        </button>
+      </div>
+      {loading && <p className="muted-text">Loading saved queries…</p>}
+      {error && <p className="error-text">{error}</p>}
+      {!loading && !queries.length && !error && (
+        <p className="muted-text">No saved queries yet.</p>
+      )}
       <ul>
-        {list.map(q => (
-          <li key={q._id}>
-            <button onClick={() => onSelect(q)}>{q.name}</button>
+        {queries.map((query) => (
+          <li key={query._id}>
+            <button
+              type="button"
+              onClick={() => onSelect(query)}
+              className="saved-query-row"
+            >
+              <span className="saved-query-name">{query.name}</span>
+              <span className="saved-query-meta">
+                {query.method.toUpperCase()} {query.path}
+              </span>
+            </button>
           </li>
         ))}
       </ul>

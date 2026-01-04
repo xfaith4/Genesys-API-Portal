@@ -1,22 +1,34 @@
-// savedQueries.js — CRUD for user-saved queries
 const express = require('express');
 const SavedQuery = require('../models/SavedQuery');
+const authenticate = require('../middleware/auth');
+
 const router = express.Router();
 
-// List all for a user (hard-coded userId for now)
+router.use(authenticate);
+
 router.get('/', async (req, res) => {
-  const userId = 'demo-user';
-  const list = await SavedQuery.find({ userId });
+  const list = await SavedQuery.find({ userId: req.user._id }).sort({ updatedAt: -1 });
   res.json(list);
 });
 
-// Create a new saved query
 router.post('/', async (req, res) => {
-  const userId = 'demo-user';
-  const { name, method, path, params, body } = req.body;
-  const saved = await SavedQuery.create({ userId, name, method, path, params, body });
+  const { name, method, path, pathTemplate, params, query, body, headers, description } = req.body;
+  if (!name || !method || !path || !pathTemplate) {
+    return res.status(400).json({ error: 'name, method, path, and pathTemplate are required' });
+  }
+  const saved = await SavedQuery.create({
+    userId: req.user._id,
+    name,
+    description,
+    method,
+    path,
+    pathTemplate,
+    params: params || {},
+    query: query || {},
+    body: body || {},
+    headers: headers || {},
+  });
   res.status(201).json(saved);
 });
 
-// Update or delete similarly...
 module.exports = router;
