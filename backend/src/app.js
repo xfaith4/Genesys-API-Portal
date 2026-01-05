@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { getSwagger } = require('./swaggerCache');
 const authRoutes = require('./routes/auth');
+const authSsoRoutes = require('./routes/authSso');
 const savedRoutes = require('./routes/savedQueries');
 const proxyRoutes = require('./routes/proxy');
 const insightsRoutes = require('./routes/insights');
@@ -21,6 +22,7 @@ app.get('/api/openapi.json', async (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/sso', authSsoRoutes);
 app.use('/api/savedQueries', savedRoutes);
 app.use('/api/proxy', proxyRoutes);
 app.use('/api/insights', insightsRoutes.router);

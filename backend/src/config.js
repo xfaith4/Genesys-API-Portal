@@ -45,4 +45,14 @@ module.exports = {
   genesysApiBaseUrl,
   swaggerUrl: process.env.GENESYS_SWAGGER_URL || `${genesysApiBaseUrl}/api-docs`,
   swaggerCacheFile: resolveCachePath(),
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  oidc: {
+    authUrl: process.env.OIDC_AUTH_URL,
+    tokenUrl: process.env.OIDC_TOKEN_URL,
+    userInfoUrl: process.env.OIDC_USERINFO_URL,
+    clientId: process.env.OIDC_CLIENT_ID,
+    clientSecret: process.env.OIDC_CLIENT_SECRET,
+    redirectUri: process.env.OIDC_REDIRECT_URI,
+    scopes: process.env.OIDC_SCOPES || 'openid email profile',
+  },
 };

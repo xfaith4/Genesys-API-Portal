@@ -3,7 +3,7 @@ import { EndpointTree } from './components/EndpointTree';
 import { PeakConcurrencyPanel } from './components/PeakConcurrencyPanel';
 import { QueryEditor } from './components/QueryEditor';
 import { SavedQueriesList } from './components/SavedQueriesList';
-import { requestJson } from './services/api';
+import { PRIMARY_API_BASE_URL, requestJson } from './services/api';
 import { pickFirstEndpoint } from './utils/endpoint';
 
 const STORAGE_TOKEN_KEY = 'genesys-portal-token';
@@ -151,6 +151,22 @@ export default function App() {
     }
   }, [spec, selectedSavedQuery, handleLoadSavedQuery]);
 
+  // Handle SSO callback hash: token, name, email
+  useEffect(() => {
+    const { hash, pathname } = window.location;
+    if (pathname === '/sso-callback' && hash.startsWith('#')) {
+      const params = new URLSearchParams(hash.slice(1));
+      const ssoToken = params.get('token');
+      const name = params.get('name');
+      const email = params.get('email');
+      if (ssoToken && email) {
+        setToken(ssoToken);
+        setCurrentUser({ name: name || email, email });
+        window.history.replaceState(null, '', '/');
+      }
+    }
+  }, []);
+
   const handleAuthSubmit = async (event) => {
     event.preventDefault();
     setAuthError('');
@@ -245,6 +261,9 @@ export default function App() {
                 <button type="button" className="ghost" onClick={toggleAuthMode}>
                   {authMode === 'login' ? 'Need an account?' : 'Already have an account?'}
                 </button>
+                <a className="ghost" href={`${PRIMARY_API_BASE_URL}/api/auth/sso/login`}>
+                  Sign in with SSO
+                </a>
               </div>
             </form>
           )}
