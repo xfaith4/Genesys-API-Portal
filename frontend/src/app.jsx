@@ -229,6 +229,7 @@ export default function App() {
                 value={authForm.email}
                 onChange={(event) => setAuthForm((prev) => ({ ...prev, email: event.target.value }))}
                 required
+                autoComplete="email"
               />
               <input
                 type="password"
@@ -236,6 +237,7 @@ export default function App() {
                 value={authForm.password}
                 onChange={(event) => setAuthForm((prev) => ({ ...prev, password: event.target.value }))}
                 required
+                autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
               />
               {authError && <p className="error-text">{authError}</p>}
               <div className="auth-actions">

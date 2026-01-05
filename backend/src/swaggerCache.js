@@ -14,7 +14,7 @@ async function writeCache(data) {
 async function fetchSwagger() {
   const response = await axios.get(config.swaggerUrl);
   await writeCache(response.data);
-  console.log('[swaggerCache] fetched swagger from Genesys');
+  console.log(`[swaggerCache] fetched swagger from Genesys -> ${config.swaggerUrl}`);
   return response.data;
 }
 
@@ -24,18 +24,30 @@ async function readCache() {
 }
 
 async function getSwagger() {
+  let cache;
   try {
     const stat = await fs.stat(CACHE_FILE);
     const age = Date.now() - stat.mtimeMs;
+    cache = await readCache();
     if (age < CACHE_TTL_MS) {
-      return await readCache();
+      console.log(`[swaggerCache] using cached swagger at ${CACHE_FILE} (age ${(age / 1000).toFixed(0)}s)`);
+      return cache;
     }
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.warn('[swaggerCache] cache read error', err.message);
     }
   }
-  return await fetchSwagger();
+
+  try {
+    return await fetchSwagger();
+  } catch (err) {
+    console.warn('[swaggerCache] fetch failed, falling back to cache', err.message);
+    if (cache) {
+      return cache;
+    }
+    throw err;
+  }
 }
 
 function scheduleRefresh() {

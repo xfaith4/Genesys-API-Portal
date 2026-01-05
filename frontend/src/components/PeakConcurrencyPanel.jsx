@@ -125,6 +125,7 @@ export function PeakConcurrencyPanel({ portalToken }) {
             value={genesysToken}
             onChange={(event) => setGenesysToken(event.target.value)}
             placeholder="Paste a valid OAuth token"
+            autoComplete="off"
           />
         </label>
       </div>
