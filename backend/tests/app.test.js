@@ -2,9 +2,48 @@ const request = require('supertest');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 const axios = require('axios');
+const config = require('../src/config');
 const app = require('../src/app');
 
 jest.mock('axios');
+
+const sampleConversations = [
+  {
+    conversationId: 'conv-peak',
+    conversationStart: '2026-01-01T00:00:00Z',
+    conversationEnd: '2026-01-01T00:05:00Z',
+    participants: [
+      {
+        sessions: [
+          {
+            mediaType: 'voice',
+            segments: [
+              {
+                segmentStart: '2026-01-01T00:00:00Z',
+                segmentEnd: '2026-01-01T00:02:00Z',
+                segmentType: 'interact',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        sessions: [
+          {
+            mediaType: 'voice',
+            segments: [
+              {
+                segmentStart: '2026-01-01T00:01:00Z',
+                segmentEnd: '2026-01-01T00:03:00Z',
+                segmentType: 'interact',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
 
 describe('backend API', () => {
   let mongo;
@@ -23,7 +62,28 @@ describe('backend API', () => {
   });
 
   beforeEach(() => {
-    axios.get.mockResolvedValue({ data: sampleSpec });
+    const jobStatusUrl = `${config.genesysApiBaseUrl}/api/v2/analytics/conversations/details/jobs/job-peak-1`;
+    const resultsUrl = `${jobStatusUrl}/results`;
+
+    axios.post.mockImplementation((url) => {
+      if (url === `${config.genesysApiBaseUrl}/api/v2/analytics/conversations/details/jobs`) {
+        return Promise.resolve({ data: { id: 'job-peak-1' } });
+      }
+      return Promise.reject(new Error(`Unexpected POST call: ${url}`));
+    });
+
+    axios.get.mockImplementation((url) => {
+      if (url === config.swaggerUrl) {
+        return Promise.resolve({ data: sampleSpec });
+      }
+      if (url === jobStatusUrl) {
+        return Promise.resolve({ data: { state: 'completed' } });
+      }
+      if (url === resultsUrl) {
+        return Promise.resolve({ data: { conversations: sampleConversations } });
+      }
+      return Promise.resolve({ data: sampleSpec });
+    });
   });
 
   afterEach(async () => {
@@ -71,5 +131,29 @@ describe('backend API', () => {
 
   it('rejects saved query access without a token', async () => {
     await request(app).get('/api/savedQueries').expect(401);
+  });
+
+  it('runs the peak concurrency insight pack', async () => {
+    const user = { name: 'Insight', email: 'insight@example.com', password: 'Password123!' };
+    await request(app).post('/api/auth/register').send(user).expect(201);
+
+    const login = await request(app)
+      .post('/api/auth/login')
+      .send({ email: user.email, password: user.password })
+      .expect(200);
+
+    const peak = await request(app)
+      .post('/api/insights/peakConcurrency')
+      .set('Authorization', `Bearer ${login.body.token}`)
+      .send({
+        genesysToken: 'dummy-genesys-token',
+        startDate: '2026-01-01T00:00:00Z',
+        endDate: '2026-01-01T00:04:00Z',
+        excludeWrapup: true,
+      })
+      .expect(200);
+
+    expect(peak.body.peakConcurrent).toBe(2);
+    expect(peak.body.peakMinutesUtc).toContain('2026-01-01T00:01:00.000Z');
   });
 });

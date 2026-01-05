@@ -1,10 +1,10 @@
 # Genesys API Portal
 
-This project wires up a full Genesys API dashboard with:
+This project wires up a Genesys Cloud operational awareness dashboard:
 
-- a **backend** that caches the Genesys OpenAPI document, proxies authenticated queries, and tracks each user's saved requests,
-- a **frontend** that renders the endpoint tree, lets you compose requests, and saves them per developer identity, and
-- automated **tests** that cover the backend and frontend helpers so the stack can be validated end-to-end.
+- a **backend** that caches the OpenAPI doc, proxies authenticated Genesys calls, persists per-user saved queries, and runs the “peak concurrent voice calls” insight pack on demand,
+- a **frontend** that renders the endpoint explorer, request editor, saved-query list, token/history UX, plus the peak-concurrency panel described in the roadmap, and
+- automated **tests** that cover the backend routes and frontend helper utilities so the stack can be validated end-to-end.
 
 ## Backend
 
@@ -14,6 +14,7 @@ This project wires up a full Genesys API dashboard with:
 - `POST /api/auth/register` and `/api/auth/login` manage users and return JWTs signed with `JWT_SECRET`.
 - `POST /api/proxy` forwards Genesys API calls (method/path/query/body) while attaching the Genesys bearer token you supply.
 - Authenticated `GET`/`POST /api/savedQueries` store queries per user with the path template, params, body, and optional description.
+- `POST /api/insights/peakConcurrency` runs the “peak concurrent voice calls” analytics job, polls the result, and returns the max concurrency plus the minute-by-minute peak minutes.
 
 ### Setup
 
@@ -33,7 +34,7 @@ MongoDB must be reachable through `MONGODB_URI`; the Swagger cache lives under `
 npm test
 ```
 
-The Jest suite spins up an in-memory MongoDB instance and exercises authentication, saved-query CRUD, and the OpenAPI cache with a mocked Genesys response.
+Jest spins up an in-memory MongoDB instance and mocks Genesys responses so auth, saved queries, and the new insight route stay covered.
 
 ## Frontend
 
@@ -42,18 +43,19 @@ The Jest suite spins up an in-memory MongoDB instance and exercises authenticati
 - Loads `/api/openapi.json` and renders every path/method in `EndpointTree.jsx`.
 - `QueryEditor.jsx` auto-populates path/query params, renders a sample body schema, and proxies Genesys calls through `/api/proxy`.
 - Saved queries post to `/api/savedQueries`, can be reloaded into the editor, and remain scoped to the authenticated user.
-- Login/register persists a JWT in `localStorage` and gates execution/save actions.
+- Login/register keeps a JWT in `localStorage` and gates execution/save actions.
+- **Peak concurrency panel** lets you supply a Genesys OAuth token, pick any UTC window, compute the peak concurrent voice sessions, download the JSON evidence, and replay recent runs.
 
 ### Setup
 
 ```bash
 cd frontend
-cp .env.example .env    # adjust VITE_API_BASE_URL if your backend runs elsewhere
+cp .env.example .env
 npm install
 npm run dev
 ```
 
-The UI defaults to `http://localhost:4000` for the backend. Paste a valid Genesys OAuth bearer token into the editor before executing requests (the token is never stored server-side).
+The UI defaults to `http://localhost:4000` for the backend. Paste a measurable Genesys OAuth bearer token into the editor/panel before executing requests—the token is never persisted server-side.
 
 ### Tests
 
@@ -61,7 +63,7 @@ The UI defaults to `http://localhost:4000` for the backend. Paste a valid Genesy
 npm run test
 ```
 
-Runs `vitest run` against `src/utils/endpoint.test.js` so helpers like path interpolation and sample-body generation stay stable.
+Runs `vitest run` against `src/utils/endpoint.test.js`.
 
 ## Manual end-to-end flow
 
@@ -69,11 +71,12 @@ Runs `vitest run` against `src/utils/endpoint.test.js` so helpers like path inte
 2. Create or log in with a user through the UI, and note the JWT stored in the browser.
 3. Pick an endpoint, fill required path params, add your Genesys token, and click **Execute request**.
 4. Save the request, then reload it from the Saved Queries panel to ensure every field repopulates.
-5. Restart either service and repeat to prove persistence across sessions.
+5. Visit the Peak Concurrent Voice Calls panel, enter a Genesys OAuth token, select your UTC window, and compute the metric to inspect the peak minutes and download the evidence JSON.
+6. Restart either service and repeat to prove persistence across sessions.
 
 ## Notes
 
 - The backend proxies Genesys requests so the browser only calls one origin.
 - Saved queries live under `backend/src/models/SavedQuery.js` and always store the authenticated user's ID.
-- The Genesys token you type into the editor is passed to `/api/proxy` for each execution but is not persisted anywhere.
-- Run both `backend` and `frontend` tests before releasing; they cover key pieces of the end-to-end flow.
+- The Genesys token you enter is forwarded to `/api/proxy` and `/api/insights/peakConcurrency` for each execution but is not stored on the server.
+- Run both `backend` and `frontend` tests before releasing; they cover the key pieces of the end-to-end flow.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EndpointTree } from './components/EndpointTree';
+import { PeakConcurrencyPanel } from './components/PeakConcurrencyPanel';
 import { QueryEditor } from './components/QueryEditor';
 import { SavedQueriesList } from './components/SavedQueriesList';
 import { requestJson } from './services/api';
@@ -284,6 +285,10 @@ export default function App() {
           />
         </section>
       </main>
+
+      <section className="panel full-width">
+        <PeakConcurrencyPanel portalToken={token} />
+      </section>
     </div>
   );
 }
